@@ -1,43 +1,46 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow_datasets as tfds
 
-base_model = keras.applications.Xception(
-  weights='imagenet',
-  input_shape(150,150,3),
-  include_top=False)
+tfds.disable_progress_bar()
 
-# freeze the base_model
-base_model.trainable=False
+# To keep our dataset small, we will use 40% of the original training data (25,000 images) for training, 10% for validation, and 10% for testing.
+train_ds, validation_ds, test_ds = tfds.load(
+    "cats_vs_dogs",
+    # Reserve 10% for validation and 10% for test
+    split=["train[:40%]", "train[40%:50%]", "train[50%:60%]"],
+    as_supervised=True,  # Include labels
+)
 
-# create a new model on top
-inputs = keras.Input(shape=(150, 150, 3))
-# BatchNormalization -> non-trainable(mean, variance) should be updated in inference mode not in train mode.
-# so, set training=False
-x = base_model(inputs, training=False) 
-x = keras.layers.GlobalAveragePooling2D()(x)
-outputs = keras.layers.Dense(1)(x)
-model = keras.Model(inputs, outputs)
+print("Number of training samples: %d" % tf.data.experimental.cardinality(train_ds))
+print(
+    "Number of validation samples: %d" % tf.data.experimental.cardinality(validation_ds)
+)
+print("Number of test samples: %d" % tf.data.experimental.cardinality(test_ds))
 
-# train -> only newly added layers on top trained.
-model.compile(optimizer=keras.optimizers.Adam(),
-              loss=keras.losses.BinaryCrossentropy(from_logits=True),
-              metrics=[keras.metrics.BinaryAccuracy()])
-model.fit(new_dataset, epochs=20, callbacks=..., validation_data=...)
+plt.figure(figsize=(10, 10))
+for i, (image, label) in enumerate(train_ds.take(9)):
+    ax = plt.subplot(3, 3, i + 1)
+    plt.imshow(image)
+    plt.title(int(label))
+    plt.axis("off")
+    
+# Standardizing the data
+#  We need to do 2 things:
+#  Standardize to a fixed image size. We pick 150x150.
+#  Normalize pixel values between -1 and 1. We'll do this using a Normalization layer as part of the model itself.
+size = (150, 150)
 
-# Fine-tuning
-#Once your model has converged on the new data, you can try to unfreeze all or part of the base model and retrain the whole model end-to-end with a very low learning rate.
-#This is an optional last step that can potentially give you incremental improvements. It could also potentially lead to quick overfitting -- keep that in mind.
+train_ds = train_ds.map(lambda x, y: (tf.image.resize(x, size), y))
+validation_ds = validation_ds.map(lambda x, y: (tf.image.resize(x, size), y))
+test_ds = test_ds.map(lambda x, y: (tf.image.resize(x, size), y))
 
-# Unfreeze the base model
-base_model.trainable = True
+batch_size = 32
 
-# It's important to recompile your model after you make any changes
-# to the `trainable` attribute of any inner layer, so that your changes
-# are take into account
-model.compile(optimizer=keras.optimizers.Adam(1e-5),  # Very low learning rate
-              loss=keras.losses.BinaryCrossentropy(from_logits=True),
-              metrics=[keras.metrics.BinaryAccuracy()])
+train_ds = train_ds.cache().batch(batch_size).prefetch(buffer_size=10)
+validation_ds = validation_ds.cache().batch(batch_size).prefetch(buffer_size=10)
+test_ds = test_ds.cache().batch(batch_size).prefetch(buffer_size=10)
 
-# Train end-to-end. Be careful to stop before you overfit!
-model.fit(new_dataset, epochs=10, callbacks=..., validation_data=...)
+
