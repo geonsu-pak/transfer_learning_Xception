@@ -55,6 +55,10 @@ for images, labels in train_ds.take(1):
     plt.title(int(labels[0]))
     plt.axis("off")
 
+'''
+input_shape: optional shape tuple, only to be specified if include_top is False (otherwise the input shape has to be (299, 299, 3). 
+It should have exactly 3 inputs channels, and width and height should be no smaller than 71. E.g. (150, 150, 3) would be one valid value.
+'''
 base_model = keras.applications.Xception(
     weights="imagenet",
     input_shape=(150, 150, 3),
