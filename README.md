@@ -1,5 +1,14 @@
 # transfer learning & fine tunning with Xception model
 
+## Xception model's position
+Model | Size | Top-1 Accuracy | Top-5 Accuracy | Parameters | Depth
+------|------|----------------|----------------|------------|-------
+Xception | 88 MB | 0.790 | 0.945 | 22,910,480 | 126
+VGG16 | 528 MB | 0.713 | 0.901 | 138,357,544 | 23
+VGG19 | 549 MB | 0.713 | 0.900 | 143,667,240 | 26
+ResNet50 | 98 MB | 0.749 | 0.921 | 25,636,712 | -
+ResNet101 | 171 MB | 0.764 | 0.928 | 44,707,176 | -
+
 ## data augumentation
 <pre>
 # random horizontal flip & rotation within 0.1 angle
